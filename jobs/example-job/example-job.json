@@ -1,0 +1,5 @@
+{
+    "name" : "My Example Job",
+    "schedule" : "* * * * *",
+    "scriptFile" : "example-script.sh"
+}
