@@ -1,10 +1,15 @@
 import os, time, glob, json, subprocess, datetime, Queue
-from croniter import croniter
 from logging import log
+import triggers
+import constants as const
 
 class Job(object):
     def __init__(self, parsed_json):
         self.parsed_json = parsed_json
+        self.next_run = const.DATETIME_NEVER
+        self.is_running = False
+
+        self.update_schedule()
     
     def __repr__(self):
         return self.name + ' ' + str(self.next_scheduled_run)
@@ -15,14 +20,23 @@ class Job(object):
     
     @property
     def next_scheduled_run(self):
-        iter = croniter(self.parsed_json['schedule'], datetime.datetime.now())
-        return iter.get_next(datetime.datetime)
+        return self.next_run    
+
+    def update_schedule(self):
+        next_run = const.DATETIME_NEVER
+        for trigger_data in self.parsed_json['triggers']:
+            trigger = getattr(triggers, trigger_data['className'])(trigger_data)
+            temp_next_run = trigger.next_run()
+            next_run = min(next_run, temp_next_run)
         
+        self.next_run = next_run
+
     def run(self):
+        self.is_running = True
+        self.update_schedule()
+        working_dir  = self.parsed_json['jobDir']
+        scriptFile   = self.parsed_json['scriptFile']
 
-        working_dir = self.parsed_json['jobDir']
-
-        scriptFile = self.parsed_json['scriptFile']
         if not os.path.isabs(scriptFile):
             scriptFile = os.path.join(working_dir, scriptFile)
 
@@ -31,32 +45,57 @@ class Job(object):
         if out:
             log(out, prefix=self.name)
         if err:
+            pass
             log(err, prefix=self.name)
+        self.is_running = False
+
 
 class JobManager(object):
     def __init__(self, jobs_dir):
         self.interrupt = False
         self.job_queue = Queue.PriorityQueue()
         self.jobs_dir = jobs_dir
-       
-    def start(self):
+        
         job_files = glob.glob(self.jobs_dir + '/*/*.json')
-        jobs = []
+        self.jobs = []
         
         for job_file in job_files:
             with open(job_file) as file:
                 job_json = json.load(file)
                 job_json['jobDir'] = os.path.dirname(job_file)
-                job = Job(job_json)
-                self.job_queue.put((job.next_scheduled_run, job))
-               
-        priority, job = self.job_queue.get()       
+                self.jobs.append(Job(job_json))
+
+        self.refresh_job_queue()
+    
+    def refresh_job_schedules(self):
+        for job in self.jobs:
+            if not job.is_running:
+                job.update_schedule()
+
+    def refresh_job_queue(self):
+        self.job_queue = Queue.PriorityQueue()
+        for job in self.jobs:
+            self.job_queue.put((job.next_scheduled_run, job))
+
+    def start(self):
+
+        self.refresh_job_queue()
+
         timeout = 5
+
         while(not self.interrupt):
-            if (job.next_scheduled_run - datetime.datetime.now()).total_seconds() < timeout:
+            priority, job = self.job_queue.get()
+
+            if datetime.datetime.now() > job.next_scheduled_run:
+                log('Running ' + job.name + ' at ' + str(datetime.datetime.now()) + ' scheduled at ' + str(job.next_scheduled_run)) 
                 job.run()
-                self.job_queue.put((job.next_scheduled_run, job))
-                priority, job = self.job_queue.get()
+            else:
+                self.refresh_job_queue()
+
+            if self.job_queue.qsize() == 0:
+                self.refresh_job_schedules()
+                self.refresh_job_queue()    
+
             time.sleep(timeout)
     
     def get_queue_copy(self):

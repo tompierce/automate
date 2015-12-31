@@ -1,5 +1,10 @@
 {
     "name" : "My Example Job",
-    "schedule" : "* * * * *",
-    "scriptFile" : "example-script.sh"
+    "scriptFile" : "example-script.sh",
+    "triggers" : [
+        {
+            "className" : "CronTrigger", 
+            "schedule" : "* * * * *"
+        }
+    ] 
 }

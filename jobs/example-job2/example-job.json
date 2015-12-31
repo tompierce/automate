@@ -1,0 +1,10 @@
+{
+    "name" : "My Other Example Job",
+    "scriptFile" : "example-script.sh",
+    "triggers" : [
+        {
+            "className" : "FileExistsTrigger",
+            "file" : "/Users/tom/development/automation-server/switch.txt"
+        }
+    ] 
+}
