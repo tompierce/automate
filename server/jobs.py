@@ -1,6 +1,6 @@
-import os, time, glob, json, subprocess, datetime, Queue
+import os, time, glob, json, datetime, Queue
 from logging import log
-import triggers
+import triggers, actions
 import constants as const
 
 class Job(object):
@@ -35,18 +35,11 @@ class Job(object):
         self.is_running = True
         self.update_schedule()
         working_dir  = self.parsed_json['jobDir']
-        scriptFile   = self.parsed_json['scriptFile']
+        log(self.parsed_json['actions'])
+        for action_data in self.parsed_json['actions']:
+            action = getattr(actions, action_data['className'])(action_data, working_dir)
+            action.run()
 
-        if not os.path.isabs(scriptFile):
-            scriptFile = os.path.join(working_dir, scriptFile)
-
-        job_process = subprocess.Popen(scriptFile, cwd=working_dir, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = job_process.communicate()
-        if out:
-            log(out, prefix=self.name)
-        if err:
-            pass
-            log(err, prefix=self.name)
         self.is_running = False
 
 
