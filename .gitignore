@@ -1,2 +1,4 @@
 *.pyc
 .DS_Store
+.cache/
+AuTOMate.egg-info/

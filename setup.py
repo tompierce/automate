@@ -7,5 +7,5 @@ setup(name = 'AuTOMate',
       author_email = 'tom.pierce0@gmail.com',
       url = 'https://github.com/tompierce/automate',
       packages = find_packages(),
-      install_requires = ['croniter'],
+      install_requires = ['croniter', 'pytest'],
       )
