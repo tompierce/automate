@@ -1,5 +1,4 @@
-import os, time, glob, json, datetime, Queue
-from logging import log
+import os, time, glob, json, datetime, Queue, logging
 import triggers, actions
 import constants as const
 
@@ -12,7 +11,7 @@ class Job(object):
         self.update_schedule()
     
     def __repr__(self):
-        return self.name + ' ' + str(self.next_scheduled_run)
+        return self.name
     
     @property
     def name(self):
@@ -35,7 +34,7 @@ class Job(object):
         self.is_running = True
         self.update_schedule()
         working_dir  = self.parsed_json['jobDir']
-        log(self.parsed_json['actions'])
+        logging.debug(self.parsed_json['actions'])
         for action_data in self.parsed_json['actions']:
             action = getattr(actions, action_data['className'])(action_data, working_dir)
             action.run()
@@ -57,8 +56,6 @@ class JobManager(object):
                 job_json = json.load(file)
                 job_json['jobDir'] = os.path.dirname(job_file)
                 self.jobs.append(Job(job_json))
-
-        self.refresh_job_queue()
     
     def refresh_job_schedules(self):
         for job in self.jobs:
@@ -66,7 +63,13 @@ class JobManager(object):
                 job.update_schedule()
 
     def refresh_job_queue(self):
-        self.job_queue = Queue.PriorityQueue()
+
+        while not self.job_queue.empty():
+            try:
+                self.job_queue.get()
+            except Empty:
+                continue
+
         for job in self.jobs:
             self.job_queue.put((job.next_scheduled_run, job))
 
@@ -76,18 +79,19 @@ class JobManager(object):
 
         timeout = 5
 
+        logging.debug('starting job manager')
+
+        # TODO: re-think the logic in this loop
         while(not self.interrupt):
             priority, job = self.job_queue.get()
 
             if datetime.datetime.now() > job.next_scheduled_run:
-                log('Running ' + job.name + ' at ' + str(datetime.datetime.now()) + ' scheduled at ' + str(job.next_scheduled_run)) 
+#                logging.debug('Running ' + job.name + ' at ' + str(datetime.datetime.now()) + ' scheduled at ' + str(job.next_scheduled_run)) 
                 job.run()
-            else:
-                self.refresh_job_queue()
+                time.sleep(timeout)
 
-            if self.job_queue.qsize() == 0:
-                self.refresh_job_schedules()
-                self.refresh_job_queue()    
+            self.refresh_job_schedules()
+            self.refresh_job_queue()    
 
             time.sleep(timeout)
     

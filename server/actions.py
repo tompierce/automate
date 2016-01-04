@@ -1,5 +1,4 @@
-from logging import log
-import subprocess, os
+import subprocess, os, logging
 
 class Action():
     def __init__(self, action_data, working_dir):
@@ -22,6 +21,6 @@ class ExecuteScriptAction(Action):
         out, err = process.communicate()
 
         if out:
-            log(out, prefix=self.action_data['scriptFile'])
+            logging.debug(self.action_data['scriptFile'] + ': ' + out)
         if err:
-            log(err, prefix=self.action_data['scriptFile'])
+            logging.debug(self.action_data['scriptFile'] + ': ' + err)
