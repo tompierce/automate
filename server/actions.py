@@ -1,4 +1,5 @@
 import subprocess, os, logging
+import constants as const
 
 class Action():
     def __init__(self, action_data, working_dir):
@@ -24,3 +25,8 @@ class ExecuteScriptAction(Action):
             logging.debug(self.action_data['scriptFile'] + ': ' + out)
         if err:
             logging.debug(self.action_data['scriptFile'] + ': ' + err)
+
+        logging.debug('Completed Successfully' if process.returncode is 0 else 'Failed')
+
+        return (const.SUCCESS if process.returncode is 0 else const.FAILED)
+

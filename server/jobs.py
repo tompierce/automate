@@ -5,10 +5,23 @@ import constants as const
 class Job(object):
     def __init__(self, parsed_json):
         self.parsed_json = parsed_json
-        self.next_run = const.DATETIME_NEVER
-        self.is_running = False
-
+        self.next_run    = const.DATETIME_NEVER
+        self.last_run    = const.DATETIME_NEVER
+        self.last_run_status = ''
+        self.is_running  = False
         self.update_schedule()
+
+    def serialize(self):
+
+        next_run_str = 'NEVER' if self.next_run is const.DATETIME_NEVER else str(self.next_run)
+        last_run_str = 'NEVER' if self.last_run is const.DATETIME_NEVER else str(self.last_run)
+
+        return {
+            'next_run' : next_run_str,
+            'last_run' : last_run_str,
+            'last_run_status' : self.last_run_status,
+            'name' : self.name
+        }
     
     def __repr__(self):
         return self.name
@@ -35,10 +48,20 @@ class Job(object):
         self.update_schedule()
         working_dir  = self.parsed_json['jobDir']
         logging.debug(self.parsed_json['actions'])
+        self.last_run = datetime.datetime.now()
+        
+        job_status = const.SUCCESS
+
         for action_data in self.parsed_json['actions']:
             action = getattr(actions, action_data['className'])(action_data, working_dir)
-            action.run()
+            result = action.run()
+            if result is not const.SUCCESS:
+                job_status = result
+            else:
+                if job_status is const.SUCCESS:
+                    job_status = const.SUCCESS                    
 
+        self.last_run_status = job_status
         self.is_running = False
 
 
@@ -86,7 +109,7 @@ class JobManager(object):
             priority, job = self.job_queue.get()
 
             if datetime.datetime.now() > job.next_scheduled_run:
-#                logging.debug('Running ' + job.name + ' at ' + str(datetime.datetime.now()) + ' scheduled at ' + str(job.next_scheduled_run)) 
+                logging.debug('Running ' + job.name + ' at ' + str(datetime.datetime.now()) + ' scheduled at ' + str(job.next_scheduled_run)) 
                 job.run()
                 time.sleep(timeout)
 
@@ -95,12 +118,11 @@ class JobManager(object):
 
             time.sleep(timeout)
     
-    def get_queue_copy(self):
-        temp_list = []
-        for i in range(self.job_queue.qsize()):
-            temp_list.append(self.job_queue.queue[i]) 
-        temp_list.sort()
-        return temp_list
+    def get_jobs_list(self):
+        serializable_list = []
+        for job in self.jobs:
+            serializable_list.append(job.serialize())
+        return serializable_list
 
     def stop(self):
         self.interrupt = True

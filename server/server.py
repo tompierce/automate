@@ -18,6 +18,10 @@ def main():
     def index():
         return "Server is running..."
 
+    @http_server.route('/jobs')
+    def list_jobs():
+        return jsonify(job_list=job_manager.get_jobs_list())
+
     job_manager = JobManager(os.path.join(SERVER_ROOT_DIR, 'jobs'))
     job_manager_thread = threading.Thread(target=job_manager.start)
     job_manager_thread.start()
