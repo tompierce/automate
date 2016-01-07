@@ -3,10 +3,12 @@ import triggers, actions
 import constants as const
 
 class Job(object):
-    def __init__(self, parsed_json):
+    def __init__(self, job_id, parsed_json):
+        self.job_id      = job_id
         self.parsed_json = parsed_json
         self.next_run    = const.DATETIME_NEVER
         self.last_run    = const.DATETIME_NEVER
+        self.must_run_now = False
         self.last_run_status = ''
         self.is_running  = False
         self.update_schedule()
@@ -20,7 +22,8 @@ class Job(object):
             'next_run' : next_run_str,
             'last_run' : last_run_str,
             'last_run_status' : self.last_run_status,
-            'name' : self.name
+            'name' : self.name,
+            'id' : self.job_id
         }
     
     def __repr__(self):
@@ -34,7 +37,16 @@ class Job(object):
     def next_scheduled_run(self):
         return self.next_run    
 
+    def run_now(self):
+        self.next_run = datetime.datetime.now()
+        self.must_run_now = True
+
     def update_schedule(self):
+
+        if self.must_run_now:
+            self.next_run = datetime.datetime.now()
+            return       
+
         next_run = const.DATETIME_NEVER
         for trigger_data in self.parsed_json['triggers']:
             trigger = getattr(triggers, trigger_data['className'])(trigger_data)
@@ -44,12 +56,13 @@ class Job(object):
         self.next_run = next_run
 
     def run(self):
+        self.must_run_now = False
         self.is_running = True
         self.update_schedule()
         working_dir  = self.parsed_json['jobDir']
         logging.debug(self.parsed_json['actions'])
         self.last_run = datetime.datetime.now()
-        
+
         job_status = const.SUCCESS
 
         for action_data in self.parsed_json['actions']:
@@ -76,9 +89,10 @@ class JobManager(object):
         
         for job_file in job_files:
             with open(job_file) as file:
+                job_id = os.path.basename(os.path.dirname(job_file))
                 job_json = json.load(file)
                 job_json['jobDir'] = os.path.dirname(job_file)
-                self.jobs.append(Job(job_json))
+                self.jobs.append(Job(job_id, job_json))
     
     def refresh_job_schedules(self):
         for job in self.jobs:
@@ -118,6 +132,13 @@ class JobManager(object):
 
             time.sleep(timeout)
     
+    def request_run(self, job_name):
+        for job in self.jobs:
+            if job_name == job.job_id:
+                job.run_now()
+                return True
+        return False
+
     def get_jobs_list(self):
         serializable_list = []
         for job in self.jobs:

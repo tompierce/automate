@@ -1,5 +1,5 @@
-import os, threading, signal, time, logging
-from flask import Flask, jsonify
+import os, threading, signal, time, logging, json
+from flask import Flask, jsonify, abort
 from jobs import JobManager
 
 PORT = 8000
@@ -14,6 +14,12 @@ def main():
     http_server = Flask(__name__)
     http_server.debug = True
 
+    @http_server.errorhandler(404)
+    def not_found(error):
+        response = jsonify({'code': 404,'message': 'Not found'})
+        response.status_code = 404
+        return response
+
     @http_server.route('/')
     def index():
         return "Server is running..."
@@ -21,6 +27,12 @@ def main():
     @http_server.route('/jobs')
     def list_jobs():
         return jsonify(job_list=job_manager.get_jobs_list())
+
+    @http_server.route('/job/<job_id>', methods=['POST'])
+    def start_job(job_id):
+        if not job_manager.request_run(job_id):
+            abort(404)
+        return jsonify(status='success', job_id=job_id)
 
     job_manager = JobManager(os.path.join(SERVER_ROOT_DIR, 'jobs'))
     job_manager_thread = threading.Thread(target=job_manager.start)
