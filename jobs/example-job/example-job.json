@@ -9,7 +9,11 @@
     "actions" : [
         {
             "className" : "ExecuteScriptAction",
-            "scriptFile" : "example-script.sh"
+            "scriptFile" : "../example-script.sh"
         }
-    ] 
+    ],
+    "workspace" : {
+        "workspace_path" : "workspace/"
+    }
+
 }

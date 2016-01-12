@@ -3,8 +3,9 @@ import triggers, actions
 import constants as const
 
 class Job(object):
-    def __init__(self, job_id, parsed_json):
+    def __init__(self, job_id, job_dir, parsed_json):
         self.job_id      = job_id
+        self.job_dir     = job_dir
         self.parsed_json = parsed_json
         self.next_run    = const.DATETIME_NEVER
         self.last_run    = const.DATETIME_NEVER
@@ -59,7 +60,17 @@ class Job(object):
         self.must_run_now = False
         self.is_running = True
         self.update_schedule()
-        working_dir  = self.parsed_json['jobDir']
+        
+        if not self.parsed_json['workspace']:
+            working_dir = os.path.join(self.job_dir, 'workspace')
+        else:
+            working_dir = self.parsed_json['workspace']['workspace_path']
+            if not os.path.isabs(working_dir):
+                working_dir = os.path.join(self.job_dir, working_dir)
+
+        if not os.path.isdir(working_dir):
+            os.mkdir(working_dir)
+
         logging.debug(self.parsed_json['actions'])
         self.last_run = datetime.datetime.now()
 
@@ -91,8 +102,8 @@ class JobManager(object):
             with open(job_file) as file:
                 job_id = os.path.basename(os.path.dirname(job_file))
                 job_json = json.load(file)
-                job_json['jobDir'] = os.path.dirname(job_file)
-                self.jobs.append(Job(job_id, job_json))
+                job_dir = os.path.dirname(job_file)
+                self.jobs.append(Job(job_id, job_dir, job_json))
     
     def refresh_job_schedules(self):
         for job in self.jobs:
