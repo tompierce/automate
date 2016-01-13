@@ -8,6 +8,9 @@
     ],
     "actions" : [
         {
+            "className" : "DeleteWorkspaceAction"
+        },
+        {
             "className" : "ExecuteScriptAction",
             "scriptFile" : "../example-script.sh"
         }

@@ -1,4 +1,4 @@
-import subprocess, os, logging
+import subprocess, os, logging, shutil
 import constants as const
 
 class Action():
@@ -9,6 +9,15 @@ class Action():
 
     def run(self):
         raise NotImplementedError
+
+class DeleteWorkspaceAction(Action):
+    def run(self):
+        logging.debug('deleting workspace: ' + self.working_dir)
+        try:
+            shutil.rmtree(self.working_dir)
+        except:
+            pass
+        os.mkdir(self.working_dir)    
 
 class ExecuteScriptAction(Action):
     def run(self):
