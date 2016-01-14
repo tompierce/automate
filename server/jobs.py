@@ -1,6 +1,5 @@
-import actions
 import os, time, glob, json, datetime, Queue, logging
-import triggers
+import actions, triggers
 import constants as const
 
 class Job(object):
@@ -50,8 +49,12 @@ class Job(object):
             return       
 
         next_run = const.DATETIME_NEVER
+
         for trigger_data in self.parsed_json['triggers']:
-            trigger = getattr(triggers, trigger_data['className'])(trigger_data)
+        
+            trigger_module = __import__('triggers.' + str(trigger_data['className']) , fromlist = [str(trigger_data['className'])])
+            trigger = getattr(trigger_module, trigger_data['className'])(trigger_data)
+        
             temp_next_run = trigger.next_run()
             next_run = min(next_run, temp_next_run)
         
