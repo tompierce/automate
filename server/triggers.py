@@ -31,6 +31,16 @@ class CronTrigger(Trigger):
         iter = croniter(self.trigger_data['schedule'], datetime.now())
         return iter.get_next(datetime)
 
+RUN_ONCE = False
+class DebugTrigger(Trigger):
+    def next_run(self):
+        global RUN_ONCE
+        if not RUN_ONCE:
+            RUN_ONCE = True
+            return datetime.now()
+        else:
+            return const.DATETIME_NEVER
+
 class FileExistsTrigger(Trigger):
     def next_run(self):
         if os.path.isfile(self.trigger_data['file']):

@@ -1,5 +1,6 @@
+import actions
 import os, time, glob, json, datetime, Queue, logging
-import triggers, actions
+import triggers
 import constants as const
 
 class Job(object):
@@ -77,8 +78,12 @@ class Job(object):
         job_status = const.SUCCESS
 
         for action_data in self.parsed_json['actions']:
-            action = getattr(actions, action_data['className'])(action_data, working_dir)
+
+            action_module = __import__('actions.' + str(action_data['className']) , fromlist = [str(action_data['className'])])
+            action = getattr(action_module, action_data['className'])(action_data, working_dir)
+            
             result = action.run()
+            
             if result is not const.SUCCESS:
                 job_status = result
             else:
