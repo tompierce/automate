@@ -49,28 +49,33 @@ class Job(object):
             return       
 
         next_run = const.DATETIME_NEVER
+        working_dir = self._resolve_workspace_dir()
 
         for trigger_data in self.parsed_json['triggers']:
         
             trigger_module = __import__('triggers.' + str(trigger_data['className']) , fromlist = [str(trigger_data['className'])])
-            trigger = getattr(trigger_module, trigger_data['className'])(trigger_data)
+            trigger = getattr(trigger_module, trigger_data['className'])(self.job_id, trigger_data)
         
             temp_next_run = trigger.next_run()
             next_run = min(next_run, temp_next_run)
         
         self.next_run = next_run
 
-    def run(self):
-        self.must_run_now = False
-        self.is_running = True
-        self.update_schedule()
-        
+    def _resolve_workspace_dir(self):
         if not self.parsed_json['workspace']:
             working_dir = os.path.join(self.job_dir, 'workspace')
         else:
             working_dir = self.parsed_json['workspace']['workspace_path']
             if not os.path.isabs(working_dir):
                 working_dir = os.path.join(self.job_dir, working_dir)
+        return working_dir
+
+    def run(self):
+        self.must_run_now = False
+        self.is_running = True
+        self.update_schedule()
+        
+        working_dir = self._resolve_workspace_dir()
 
         if not os.path.isdir(working_dir):
             os.mkdir(working_dir)

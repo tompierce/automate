@@ -7,6 +7,14 @@
         {
             "className" : "CronTrigger", 
             "schedule" : "* * * * *"
+        },
+        {
+            "className" : "FileExistsTrigger", 
+            "file" : "/tmp/trigger_file"
+        },
+        {
+            "className" : "GitTrigger",
+            "repository" : "/Users/tom/development/git-sandbox-clone"
         }
     ],
     "actions" : [

@@ -9,7 +9,8 @@ All jobs are polled every X ms and are asked when they next want to run.
 '''
 
 class Trigger():
-    def __init__(self, trigger_data):
+    def __init__(self, job_id, trigger_data):
+        self.job_id = job_id
         self.trigger_data = trigger_data
         pass
 
