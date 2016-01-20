@@ -3,4 +3,4 @@
 .cache/
 TODO
 AuTOMate.egg-info/
-jobs/*/workspace
+jobs/*/workspace/*

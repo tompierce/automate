@@ -8,8 +8,6 @@ import constants as const
 import logging, os
 from datetime import datetime
 
-logging.getLogger("sh").setLevel(logging.WARNING)
-
 class GitTrigger(Trigger):
     def next_run(self):
         
@@ -23,18 +21,14 @@ class GitTrigger(Trigger):
 
         if not os.path.isdir(temp_repo_git):
             git.clone(self.trigger_data['repository'], temp_repo_dir)
-            logging.debug('Firing Git Trigger')
             return datetime.now()
         else:
             git = git.bake('-C', temp_repo_dir)
             git.fetch('origin')
             status_str = git.status()
-            logging.debug(status_str)
             if 'branch is behind' in status_str:
                 git.merge('origin/master')
-                logging.debug('Firing Git Trigger')
                 return datetime.now()
 
-        logging.debug('Not firing Git Trigger')
         return const.DATETIME_NEVER
 

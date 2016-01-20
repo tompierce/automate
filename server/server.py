@@ -7,6 +7,7 @@ SERVER_ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'
 def main():
 
     logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger("sh").setLevel(logging.WARNING)
 
     logging.debug('Starting server as ' + __name__ )
            
