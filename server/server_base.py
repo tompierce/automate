@@ -1,8 +1,8 @@
-from flask import Flask, jsonify, abort
+from flask import Flask, jsonify, abort, redirect
 
 class HTTP_Server(Flask):
     def __init__(self, import_name):
-        Flask.__init__(self, import_name)
+        Flask.__init__(self, import_name, static_folder='public', static_url_path='')
 
     def set_job_manager(self, job_manager):
         self.job_manager = job_manager
@@ -18,7 +18,7 @@ def not_found(error):
 
 @http_server.route('/')
 def index():
-    return "Server is running..."
+    return redirect("/index.html")
 
 @http_server.route('/jobs')
 def list_jobs():

@@ -92,11 +92,11 @@ class Job(object):
             
             result = action.run()
             
-            if result is not const.SUCCESS:
-                job_status = result
-            else:
-                if job_status is const.SUCCESS:
-                    job_status = const.SUCCESS                    
+            if (result is not const.SUCCESS) and (result is not const.UNSTABLE) and (result is not const.FAILURE):
+                logging.error('job action returned an invalid result: ' + result); 
+                # TODO: throw/error job here
+
+            job_status = result
 
         self.last_run_status = job_status
         self.is_running = False
