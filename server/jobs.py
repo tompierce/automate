@@ -62,7 +62,7 @@ class Job(object):
         self.next_run = next_run
 
     def _resolve_workspace_dir(self):
-        if not self.parsed_json['workspace']:
+        if not 'workspace' in self.parsed_json:
             working_dir = os.path.join(self.job_dir, 'workspace')
         else:
             working_dir = self.parsed_json['workspace']['workspace_path']
