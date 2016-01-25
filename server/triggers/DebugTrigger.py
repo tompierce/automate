@@ -8,6 +8,7 @@ class DebugTrigger(Trigger):
         global RUN_ONCE
         if not RUN_ONCE:
             RUN_ONCE = True
+            self.logger.debug('DebugTrigger - Executing job immediately')
             return datetime.now()
         else:
             return const.DATETIME_NEVER

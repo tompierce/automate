@@ -4,7 +4,7 @@ import constants as const
 
 class DeleteWorkspaceAction(Action):
     def run(self):
-        logging.debug('deleting workspace: ' + self.working_dir)
+        self.logger.debug('deleting workspace: ' + self.working_dir)
         try:
             shutil.rmtree(self.working_dir)
         except:

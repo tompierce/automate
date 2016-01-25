@@ -1,4 +1,5 @@
 import os, time, glob, json, datetime, Queue, logging
+from logging.handlers import RotatingFileHandler
 import actions, triggers
 import constants as const
 
@@ -12,6 +13,18 @@ class Job(object):
         self.must_run_now = False
         self.last_run_status = ''
         self.is_running  = False
+
+        self.job_logger = logging.getLogger('jobs.' + job_id)
+        log_file_handler = logging.FileHandler(os.path.join(self.job_dir, 'job.log'))
+        log_file_handler.setLevel(logging.DEBUG)
+        self.job_logger.addHandler(log_file_handler)
+
+        self.job_run_logger = logging.getLogger('jobs.' + self.job_id + '.last_run')
+        self.job_run_file_handler = RotatingFileHandler(os.path.join(self.job_dir, 'job.last_run.log'), backupCount = 3)
+        self.job_run_file_handler.setLevel(logging.DEBUG)
+        self.job_run_logger.addHandler(self.job_run_file_handler)
+
+
         self.update_schedule()
 
     def serialize(self):
@@ -50,11 +63,12 @@ class Job(object):
 
         next_run = const.DATETIME_NEVER
         working_dir = self._resolve_workspace_dir()
+        
+        self.job_logger.debug('evaluating triggers...')
 
         for trigger_data in self.parsed_json['triggers']:
-        
             trigger_module = __import__('triggers.' + str(trigger_data['className']) , fromlist = [str(trigger_data['className'])])
-            trigger = getattr(trigger_module, trigger_data['className'])(self.job_id, trigger_data)
+            trigger = getattr(trigger_module, trigger_data['className'])(self.job_id, trigger_data, self.job_logger)
         
             temp_next_run = trigger.next_run()
             next_run = min(next_run, temp_next_run)
@@ -84,11 +98,13 @@ class Job(object):
         self.last_run = datetime.datetime.now()
 
         job_status = const.SUCCESS
-
+        self.job_logger.debug('executing actions...')
+        self.job_run_file_handler.doRollover()
+        self.job_run_logger.handlers[0].doRollover()
         for action_data in self.parsed_json['actions']:
 
             action_module = __import__('actions.' + str(action_data['className']) , fromlist = [str(action_data['className'])])
-            action = getattr(action_module, action_data['className'])(action_data, working_dir)
+            action = getattr(action_module, action_data['className'])(action_data, working_dir, self.job_run_logger)
             
             result = action.run()
             
