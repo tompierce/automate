@@ -23,65 +23,76 @@ var Automate = {
 
     updateView : function() {
         var self = this;
+        var jobTableElement = document.getElementById('jobTable');
 
-        self._clearJobTable();
-
-        function el(elementStr, child) {
-            var e = document.createElement(elementStr);
-            if (child) {
-                if (typeof child === 'string') {
-                    e.appendChild(document.createTextNode(child));
-                } else if (Object.prototype.toString.call( child ) === '[object Array]') {
-                    for (element of child) {
-                        e.appendChild(element);
-                    }
-                }
-            }
-            return e;
-        }
+        self._removeAllChildren(jobTableElement);
 
         for (job of self.jobList) {
-            
-            var job_status_color = 'gray';
-            switch (job.last_run_status) {
-                case "SUCCESS":
-                    job_status_color = "green";
-                    break;
-                case "FAILURE":
-                    job_status_color = "red";
-                    break;
-                case "UNSTABLE":
-                    job_status_color = "orange";
-                    break
-                default:
-                    job_status_color = 'gray';
-            }
-
-            var jobStr = '';
-            if (job.last_run === 'NEVER') {
-                jobStr = "Never";
-            } else {
-                jobStr = moment(job.last_run).fromNow();
-            }
-
-            statusElement = el('DIV', '');
-            statusElement.setAttribute('style', 'width:32px; height:32px; background-color:' + job_status_color);
-            jobTableElement.appendChild(el('TR', 
-                [
-                    el('TD', [statusElement]), 
-                    el('TD', job.name), 
-                    el('TD', jobStr)
-                ]));
+            jobTableRow = self._createJobTableRow(job);
+            jobTableElement.appendChild(jobTableRow);
         }
 
     },
     
-    _clearJobTable : function() {
+    _createJobTableRow : function() {
         var self = this;
-        jobTableElement = document.getElementById('jobTable');
+        var job_status_color = 'gray';
+        switch (job.last_run_status) {
+            case "SUCCESS":
+                job_status_color = "green";
+                break;
+            case "FAILURE":
+                job_status_color = "red";
+                break;
+            case "UNSTABLE":
+                job_status_color = "orange";
+                break
+            default:
+                job_status_color = 'gray';
+        }
 
-        while (jobTableElement.lastChild) {
-            jobTableElement.removeChild(jobTableElement.lastChild);
+        var jobStr = '';
+        if (job.last_run === 'NEVER') {
+            jobStr = "Never";
+        } else {
+            jobStr = moment(job.last_run).fromNow();
+        }
+
+        statusElement = el('DIV', '');
+        statusElement.setAttribute('style', 'width:32px; height:32px; background-color:' + job_status_color);
+        
+        jobTrigger = el('A', 'Execute');
+        jobTrigger.setAttribute('href', '#');
+        jobTrigger.setAttribute('data-job-id', job.id);
+        jobTrigger.addEventListener('click', function(eventObj) {
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.onreadystatechange = function() { 
+                if (xmlHttp.readyState === 4) {
+                    if (xmlHttp.status === 200) {
+                    } else {
+                        self.alert('Failed to execute job');
+                    }
+                }
+            }
+
+            var ASYNC = true;
+            jobId = eventObj.target.getAttribute('data-job-id');
+            xmlHttp.open("POST", "/job/" + jobId, ASYNC);
+            xmlHttp.send();
+        });
+
+        return el('TR',  [
+                    el('TD', [statusElement]), 
+                    el('TD', job.name), 
+                    el('TD', jobStr),
+                    el('TD', [jobTrigger])
+                ]);
+    },
+
+    _removeAllChildren : function(element) {
+        while (element.lastChild) {
+            element.removeChild(element.lastChild);
         }
     },
 
@@ -90,5 +101,20 @@ var Automate = {
         console.error(msg);
     }
 };
+
+function el(elementStr, child) {
+    var e = document.createElement(elementStr);
+    if (child) {
+        if (typeof child === 'string') {
+            e.appendChild(document.createTextNode(child));
+        } else if (Object.prototype.toString.call( child ) === '[object Array]') {
+            for (element of child) {
+                e.appendChild(element);
+            }
+        }
+    }
+    return e;
+}
+
 
 Automate.pollJobs();

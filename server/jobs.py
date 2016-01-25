@@ -142,7 +142,6 @@ class JobManager(object):
 
         logging.debug('starting job manager')
 
-        # TODO: re-think the logic in this loop
         while(not self.interrupt):
             priority, job = self.job_queue.get()
 
