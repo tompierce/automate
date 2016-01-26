@@ -58,6 +58,9 @@ var Automate = {
             jobStr = moment(job.last_run).fromNow();
         }
 
+        var lastRun = el('A', jobStr)
+        lastRun.setAttribute('href', '/logs/' + job.id)
+
         statusElement = el('DIV', '');
         statusElement.setAttribute('style', 'width:32px; height:32px; background-color:' + job_status_color);
         
@@ -85,7 +88,7 @@ var Automate = {
         return el('TR',  [
                     el('TD', [statusElement]), 
                     el('TD', job.name), 
-                    el('TD', jobStr),
+                    el('TD', [lastRun]),
                     el('TD', [jobTrigger])
                 ]);
     },

@@ -177,7 +177,13 @@ class JobManager(object):
                 job.run_now()
                 return True
         return False
-
+    
+    def is_job(self, job_id):
+        for job in self.jobs:
+            if job_id == job.job_id:
+                return True
+        return False
+        
     def get_jobs_list(self):
         serializable_list = []
         for job in self.jobs:

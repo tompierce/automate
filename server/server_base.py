@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, abort, redirect
+from flask import Flask, jsonify, abort, redirect, send_file
 
 class HTTP_Server(Flask):
     def __init__(self, import_name):
@@ -23,6 +23,13 @@ def index():
 @http_server.route('/jobs')
 def list_jobs():
     return jsonify(job_list=http_server.job_manager.get_jobs_list())
+
+@http_server.route('/logs/<job_id>')
+def show_log_for_job(job_id):
+    if http_server.job_manager.is_job(job_id):
+        return send_file('../jobs/' + job_id + '/job.last_run.log')
+    else:
+        abort(404)
 
 @http_server.route('/job/<job_id>', methods=['POST'])
 def start_job(job_id):
