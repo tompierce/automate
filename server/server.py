@@ -4,7 +4,7 @@ from jobs import JobManager
 
 SERVER_ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 
-def main():
+def server():
 
     logging.getLogger().setLevel(logging.DEBUG)
     logging.getLogger("sh").setLevel(logging.WARNING)
@@ -20,7 +20,3 @@ def main():
     
     job_manager.stop()
     job_manager_thread.join()
-        
-if __name__ == "__main__":
-    logging.warning('In main.')
-    main()
