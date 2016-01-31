@@ -4,14 +4,14 @@ import actions, triggers
 import constants as const
 
 class Job(object):
-    def __init__(self, job_id, job_dir, parsed_json):
+    def __init__(self, job_id, job_dir, parsed_json, previous_stats = {}):
         self.job_id      = job_id
         self.job_dir     = job_dir
         self.parsed_json = parsed_json
         self.next_run    = const.DATETIME_NEVER
-        self.last_run    = const.DATETIME_NEVER
+        self.last_run    = previous_stats['last_run'] if 'last_run' in previous_stats else const.DATETIME_NEVER
         self.must_run_now = False
-        self.last_run_status = ''
+        self.last_run_status = previous_stats['last_run_status'] if 'last_run' in previous_stats else const.DATETIME_NEVER
         self.is_running  = False
 
         self.job_logger = logging.getLogger('jobs.' + job_id)
@@ -23,7 +23,7 @@ class Job(object):
         self.job_run_file_handler = RotatingFileHandler(os.path.join(self.job_dir, 'job.last_run.log'), backupCount = 3)
         self.job_run_file_handler.setLevel(logging.DEBUG)
         self.job_run_logger.addHandler(self.job_run_file_handler)
-
+        
 
         self.update_schedule()
 
@@ -115,6 +115,10 @@ class Job(object):
             job_status = result
 
         self.last_run_status = job_status
+
+        with open(os.path.join(self.job_dir, 'job.stats'), 'w') as stats_file:
+            json.dump({"last_run": self.last_run.isoformat(), "last_run_status": self.last_run_status}, stats_file)
+
         self.is_running = False
 
 
@@ -132,7 +136,14 @@ class JobManager(object):
                 job_id = os.path.basename(os.path.dirname(job_file))
                 job_json = json.load(file)
                 job_dir = os.path.dirname(job_file)
-                self.jobs.append(Job(job_id, job_dir, job_json))
+                stats_file = os.path.join(job_dir, 'job.stats')
+                stats = {}
+                if os.path.isfile(stats_file):
+                    with open(stats_file) as stats:
+                        stats = json.load(stats)
+                print 'stats_file: ' + str(stats_file)
+                print 'stats: ' + str(stats)
+                self.jobs.append(Job(job_id, job_dir, job_json, stats))
     
     def refresh_job_schedules(self):
         for job in self.jobs:
