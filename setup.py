@@ -1,3 +1,5 @@
+"""setuptools configuration for AuTOMate"""
+
 from setuptools import setup, find_packages
 
 setup(name = 'AuTOMate',

@@ -1,27 +1,31 @@
-from server.triggers import *
+"""Basic tests for triggers"""
 import json
+import logging
 from datetime import datetime
+from server.triggers.CronTrigger import CronTrigger
+from server.triggers.FileExistsTrigger import FileExistsTrigger
 
+# pylint: disable=missing-docstring, no-self-use
 
-class TestCronTrigger:
+class TestCronTrigger(object):
 
     def test_next_run_returns_datetime(self):
         trigger_data_str = """{
                                 "className" : "CronTrigger", 
                                 "schedule" : "0 0 0 0 0"
                             }"""
-        trigger = CronTrigger(json.loads(trigger_data_str))
 
-        assert type(trigger.next_run()) == datetime
+        trigger = CronTrigger('test-job', json.loads(trigger_data_str), logging.getLogger())
 
+        assert isinstance(trigger.next_run(), datetime)
 
-class TestFileExistsTrigger:
+class TestFileExistsTrigger(object):
 
     def test_next_run_returns_datetime(self):
         trigger_data_str = """{
                                 "className" : "FileExistsTrigger", 
                                 "file" : "/tmp/this-file-does-not-exist"
                             }"""
-        trigger = FileExistsTrigger(json.loads(trigger_data_str))
+        trigger = FileExistsTrigger('test-job', json.loads(trigger_data_str), logging.getLogger())
 
-        assert type(trigger.next_run()) == datetime
+        assert isinstance(trigger.next_run(), datetime)

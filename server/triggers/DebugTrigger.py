@@ -1,9 +1,11 @@
+"""Ugly hack to force a single job to trigger on server startup"""
 from datetime import datetime
-from base_trigger import Trigger
-import constants as const
+from server.triggers.base_trigger import Trigger
+import server.constants as const
 
 RUN_ONCE = False
 class DebugTrigger(Trigger):
+    """Ugly hack to force a single job to trigger on server startup"""
     def next_run(self):
         global RUN_ONCE
         if not RUN_ONCE:

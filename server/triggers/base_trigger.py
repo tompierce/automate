@@ -1,19 +1,15 @@
-'''
-Trigger Algorithm
+"""base classes for triggers"""
 
-Each job can have multiple triggers. 
-All jobs are polled every X ms and are asked when they next want to run.
-    The job will ask each of its triggers when it needs to be triggered
-    Triggers can respond with either a datetime (e.g. datetime.now()) or 0 / Never
-    The job is then inserted into the job queue based on this response.
-'''
-
-class Trigger():
+class Trigger(object):
+    """"base class for triggers"""
     def __init__(self, job_id, trigger_data, logger):
         self.job_id       = job_id
         self.trigger_data = trigger_data
         self.logger       = logger
-        pass
 
     def next_run(self):
+        """must return a datetime to indicate when it should be run
+            see server/constants.py for useful datetime constants
+            e.g. DATETIME_NEVER
+        """
         raise NotImplementedError

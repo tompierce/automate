@@ -1,38 +1,46 @@
+"""defines the routes for the http server"""
 from flask import Flask, jsonify, abort, redirect, send_file
 
-class HTTP_Server(Flask):
+class HTTPServer(Flask):
+    """wraps a flask server to augment it with a job_manager"""
     def __init__(self, import_name):
         Flask.__init__(self, import_name, static_folder='public', static_url_path='')
 
     def set_job_manager(self, job_manager):
-        self.job_manager = job_manager
+        """lazily initialize the HTTP servers's job_manager"""
+        self.job_manager = job_manager # pylint: disable=attribute-defined-outside-init
 
-http_server = HTTP_Server(__name__)
-http_server.debug = True
+HTTP_SERVER = HTTPServer(__name__)
+HTTP_SERVER.debug = True
 
-@http_server.errorhandler(404)
-def not_found(error):
+@HTTP_SERVER.errorhandler(404)
+def not_found():
+    """error handler for 404s"""
     response = jsonify({'code': 404,'message': 'Not found'})
     response.status_code = 404
     return response
 
-@http_server.route('/')
+@HTTP_SERVER.route('/')
 def index():
+    """serve the homepage"""
     return redirect("/index.html")
 
-@http_server.route('/jobs')
+@HTTP_SERVER.route('/jobs')
 def list_jobs():
-    return jsonify(job_list=http_server.job_manager.get_jobs_list())
+    """return a list of jobs"""
+    return jsonify(job_list=HTTP_SERVER.job_manager.get_jobs_list())
 
-@http_server.route('/logs/<job_id>')
+@HTTP_SERVER.route('/logs/<job_id>')
 def show_log_for_job(job_id):
-    if http_server.job_manager.is_job(job_id):
+    """return the most recent log for a job"""
+    if HTTP_SERVER.job_manager.is_job(job_id):
         return send_file('../jobs/' + job_id + '/job.last_run.log')
     else:
         abort(404)
 
-@http_server.route('/job/<job_id>', methods=['POST'])
+@HTTP_SERVER.route('/job/<job_id>', methods=['POST'])
 def start_job(job_id):
-    if not http_server.job_manager.request_run(job_id):
+    """trigger a job to start"""
+    if not HTTP_SERVER.job_manager.request_run(job_id):
         abort(404)
     return jsonify(status='success', job_id=job_id)

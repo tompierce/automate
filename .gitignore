@@ -6,3 +6,5 @@ AuTOMate.egg-info/
 jobs/*/workspace/*
 jobs/*/*.log*
 jobs/*/*.stats
+.project
+.pydevproject
