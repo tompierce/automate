@@ -98,7 +98,7 @@ class Job(object):
         self.last_run = datetime.datetime.now()
 
         job_status = const.SUCCESS
-        self.job_logger.debug('executing actions...')
+        self.job_logger.info('executing job...')
         self.job_run_file_handler.doRollover()
         self.job_run_logger.handlers[0].doRollover()
         for action_data in self.parsed_json['actions']:
@@ -141,8 +141,6 @@ class JobManager(object):
                 if os.path.isfile(stats_file):
                     with open(stats_file) as stats:
                         stats = json.load(stats)
-                print 'stats_file: ' + str(stats_file)
-                print 'stats: ' + str(stats)
                 self.jobs.append(Job(job_id, job_dir, job_json, stats))
     
     def refresh_job_schedules(self):

@@ -16,7 +16,7 @@ class GitCloneAction(Action):
             else:
                 local_dir = self.action_data['localDir']
 
-        self.logger.debug('cloning ' + self.action_data['repository'] + ' to ' + local_dir)
+        self.logger.info('cloning ' + self.action_data['repository'] + ' to ' + local_dir)
 
         output = git.clone(self.action_data['repository'], local_dir)
 

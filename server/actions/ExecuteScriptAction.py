@@ -15,9 +15,9 @@ class ExecuteScriptAction(Action):
         out, err = process.communicate()
 
         if out:
-            self.logger.debug(self.action_data['scriptFile'] + ': ' + out)
+            self.logger.info(self.action_data['scriptFile'] + ': ' + out)
         if err:
-            self.logger.debug(self.action_data['scriptFile'] + ': ' + err)
+            self.logger.info(self.action_data['scriptFile'] + ': ' + err)
 
         self.logger.debug('Completed Successfully' if process.returncode is 0 else 'Failed')
 

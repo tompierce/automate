@@ -6,10 +6,10 @@ SERVER_ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..'
 
 def server():
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
     logging.getLogger("sh").setLevel(logging.WARNING)
 
-    logging.debug('Starting server as ' + __name__ )
+    logging.info('Starting AuTOMate server...')
            
     job_manager = JobManager(os.path.join(SERVER_ROOT_DIR, 'jobs'))
     job_manager_thread = threading.Thread(target=job_manager.start)
