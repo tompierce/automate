@@ -1,10 +1,8 @@
 """
-Main entry point for AuTOMate - an automation and continuous integration server
+Main entry point for AuTOMate - an automation and continuous integration automate_server
 Author: Tom Pierce - tom.pierce0@gmail.com
 """
-import sys
-sys.path.append('server')
-from server.server import server
+from server.automate_server import server
 
 if __name__ == "__main__":
     server()

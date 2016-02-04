@@ -2,8 +2,8 @@
 import os
 import threading
 import logging
-from server_base import HTTP_SERVER
-from jobs import JobManager
+from server.server_base import HTTP_SERVER
+from server.jobs import JobManager
 
 SERVER_ROOT_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')
 

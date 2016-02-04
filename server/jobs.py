@@ -11,42 +11,45 @@ import constants as const # pylint: disable=relative-import
 
 def dynamic_import_trigger(class_name):
     """load a trigger from the triggers directory"""
-    module = __import__('triggers.' + class_name, fromlist = [class_name])
+    module = __import__('server.triggers.' + class_name, fromlist = [class_name])
     return getattr(module, class_name)
 
 def dynamic_import_action(class_name):
     """load an action from the actions directory"""
-    module = __import__('actions.' + class_name, fromlist = [class_name])
+    module = __import__('server.actions.' + class_name, fromlist = [class_name])
     return getattr(module, class_name)
 
 class Job(object):
     """Holds the state of a job in memory"""
     def __init__(self, job_id, job_dir, parsed_json, previous_stats = None):
-        self.job_id      = job_id
-        self.job_dir     = job_dir
-        self.parsed_json = parsed_json
-        self.next_run    = const.DATETIME_NEVER
+        self.state = {}
+        self.state["id"] = job_id
+        self.state["job_directory"] = job_dir
+        self.state["json_config"] = parsed_json
+        self.state["next_run"] = const.DATETIME_NEVER
+        self.state["last_run"] = const.DATETIME_NEVER
+        self.state["last_status"] = ""
+        self.state["name"] = parsed_json["name"]
 
-        self.last_run = const.DATETIME_NEVER
-        self.last_run_status = ""
 
         if previous_stats:
             if 'last_run' in previous_stats:
-                self.last_run = previous_stats['last_run']
+                self.state["last_run"] = previous_stats['last_run']
             if 'last_run_status' in previous_stats:
-                self.last_run_status = previous_stats['last_run_status']
+                self.state["last_status"] = previous_stats['last_run_status']
 
-        self.must_run_now = False
-        self.is_running  = False
+        self.state["run_now"] = False
+        self.state["is_running"] = False
 
         self.job_logger = logging.getLogger('jobs.' + job_id)
-        log_file_handler = logging.FileHandler(os.path.join(self.job_dir, 'job.log'))
+        log_file_handler = logging.FileHandler(os.path.join(self.state["job_directory"], 'job.log'))
         log_file_handler.setLevel(logging.DEBUG)
         self.job_logger.addHandler(log_file_handler)
 
-        self.job_run_logger = logging.getLogger('jobs.' + self.job_id + '.last_run')
+        self.job_run_logger = logging.getLogger('jobs.' + self.state["id"] + '.last_run')
         self.job_run_file_handler = RotatingFileHandler(
-                                                    os.path.join(self.job_dir, 'job.last_run.log'),
+                                                    os.path.join(self.state["job_directory"],
+                                                                 'job.last_run.log'),
                                                     backupCount = 3)
         self.job_run_file_handler.setLevel(logging.DEBUG)
         self.job_run_logger.addHandler(self.job_run_file_handler)
@@ -55,68 +58,84 @@ class Job(object):
 
     def serialize(self):
         """create a serializable dict from the job's fields"""
-        next_run_str = 'NEVER' if self.next_run is const.DATETIME_NEVER else str(self.next_run)
-        last_run_str = 'NEVER' if self.last_run is const.DATETIME_NEVER else str(self.last_run)
+
+        next_run_str = self.state['next_run']
+        if self.state['next_run'] is const.DATETIME_NEVER:
+            next_run_str = 'NEVER'
+
+        last_run_str = self.state['last_run']
+        if self.state['last_run'] is const.DATETIME_NEVER:
+            last_run_str = 'NEVER'
 
         return {
             'next_run' : next_run_str,
             'last_run' : last_run_str,
-            'last_run_status' : self.last_run_status,
-            'name' : self.name,
-            'id' : self.job_id
+            'last_run_status' : self.state['last_status'],
+            'name' : self.state['name'],
+            'id' : self.state['id']
         }
 
     def __repr__(self):
-        return self.name
+        return self.state['name']
+
+    @property
+    def job_id(self):
+        """accessor for human readable job id"""
+        return self.state['id']
 
     @property
     def name(self):
         """accessor for human readable job name"""
-        return self.parsed_json['name']
+        return self.state['name']
 
     @property
     def next_scheduled_run(self):
         """accessor for next scheduled run as a datetime"""
-        return self.next_run
+        return self.state['next_run']
+
+    @property
+    def is_running(self):
+        """accessor for is_running boolean"""
+        return self.state['is_running']
 
     def run_now(self):
         """schedules the job to run immediately"""
-        self.next_run = datetime.datetime.now()
-        self.must_run_now = True
+        self.state['next_run'] = datetime.datetime.now()
+        self.state['run_now'] = True
 
     def update_schedule(self):
         """ polls all of the job's triggers to see if anything changes
             require an update of the schedule
         """
-        if self.must_run_now:
-            self.next_run = datetime.datetime.now()
+        if self.state['run_now']:
+            self.state['next_run'] = datetime.datetime.now()
             return
 
         next_run = const.DATETIME_NEVER
 
         self.job_logger.debug('evaluating triggers...')
 
-        for trigger_data in self.parsed_json['triggers']:
+        for trigger_data in self.state['json_config']['triggers']:
             trigger_class = dynamic_import_trigger(trigger_data['className'])
-            trigger = trigger_class(self.job_id, trigger_data, self.job_logger)
+            trigger = trigger_class(self.state['id'], trigger_data, self.job_logger)
             temp_next_run = trigger.next_run()
             next_run = min(next_run, temp_next_run)
 
-        self.next_run = next_run
+        self.state['next_run'] = next_run
 
     def _resolve_workspace_dir(self):
-        if not 'workspace' in self.parsed_json:
-            working_dir = os.path.join(self.job_dir, 'workspace')
+        if not 'workspace' in self.state['json_config']:
+            working_dir = os.path.join(self.state['job_directory'], 'workspace')
         else:
-            working_dir = self.parsed_json['workspace']['workspace_path']
+            working_dir = self.state['json_config']['workspace']['workspace_path']
             if not os.path.isabs(working_dir):
-                working_dir = os.path.join(self.job_dir, working_dir)
+                working_dir = os.path.join(self.state['job_directory'], working_dir)
         return working_dir
 
     def run(self):
         """runs the actions of a job"""
-        self.must_run_now = False
-        self.is_running = True
+        self.state['run_now'] = False
+        self.state['is_running'] = True
         self.update_schedule()
 
         working_dir = self._resolve_workspace_dir()
@@ -124,15 +143,15 @@ class Job(object):
         if not os.path.isdir(working_dir):
             os.mkdir(working_dir)
 
-        logging.debug(self.parsed_json['actions'])
-        self.last_run = datetime.datetime.now()
+        logging.debug(self.state['json_config']['actions'])
+        self.state['last_run'] = datetime.datetime.now()
 
         job_status = const.SUCCESS
         self.job_logger.info('executing job...')
         self.job_run_file_handler.doRollover()
         self.job_run_logger.handlers[0].doRollover()
 
-        for action_data in self.parsed_json['actions']:
+        for action_data in self.state['json_config']['actions']:
             action_class = dynamic_import_action(action_data['className'])
             action = action_class(action_data, working_dir, self.job_run_logger)
 
@@ -148,15 +167,15 @@ class Job(object):
 
         self.job_run_logger.info(job_status)
 
-        self.last_run_status = job_status
+        self.state['last_status'] = job_status
 
-        with open(os.path.join(self.job_dir, 'job.stats'), 'w') as stats_file:
+        with open(os.path.join(self.state['job_directory'], 'job.stats'), 'w') as stats_file:
             json.dump({
-                       "last_run": self.last_run.isoformat(),
-                       "last_run_status": self.last_run_status},
+                       "last_run": self.state['last_run'].isoformat(),
+                       "last_run_status": self.state['last_status']},
                       stats_file)
 
-        self.is_running = False
+        self.state['is_running'] = False
 
 
 class JobManager(object):
@@ -222,10 +241,10 @@ class JobManager(object):
 
             time.sleep(timeout)
 
-    def request_run(self, job_name):
+    def request_run(self, job_id):
         """request a job to run immediately"""
         for job in self.jobs:
-            if job_name == job.job_id:
+            if job_id == job.job_id:
                 job.run_now()
                 return True
         return False
