@@ -2,9 +2,6 @@
     "name" : "My Example Job",
     "triggers" : [
         {
-            "className" : "DebugTrigger" 
-        },
-        {
             "className" : "CronTrigger", 
             "schedule" : "*/5 * * * *"
         },
