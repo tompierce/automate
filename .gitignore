@@ -8,3 +8,4 @@ jobs/*/*.log*
 jobs/*/*.stats
 .project
 .pydevproject
+venv/

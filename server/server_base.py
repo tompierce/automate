@@ -14,7 +14,7 @@ HTTP_SERVER = HTTPServer(__name__)
 HTTP_SERVER.debug = True
 
 @HTTP_SERVER.errorhandler(404)
-def not_found():
+def not_found(error):
     """error handler for 404s"""
     response = jsonify({'code': 404,'message': 'Not found'})
     response.status_code = 404
